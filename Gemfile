@@ -2,6 +2,7 @@
 
 source "https://rubygems.org"
 
+gem 'webdrivers'
 gem 'twitter'
 gem 'watir'
 gem 'figaro'
