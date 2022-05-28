@@ -2,7 +2,7 @@ require 'watir'
 require 'webdrivers'
 require 'pry'
 require 'figaro'
-require 'twitter'
+require_relative '../../tweet_result_service'
 
 KATHMANDU_METROPOLITAN = 'Kathmandu Metropolitan'
 
@@ -16,44 +16,23 @@ Figaro.load
 module AtonxTweetBot
   class GetElectionResultService
 
-    attr_reader :url, :browser, :config
+    attr_reader :url, :browser
 
     def initialize
       @url = ENV['DATA_SOURCE']
       @browser = Watir::Browser.new :chrome, headless: true
-      @config = twitter_api_config
     end
 
-    def perform
-      client = configure_rest_client
-      tweet_result(client)
-    end
-
-    private
-
-    def twitter_api_config
-      {
-        consumer_key: ENV['CONSUMER_KEY'],
-        consumer_secret: ENV['CONSUMER_SECRET'],
-        access_token: ENV['ACCESS_TOKEN'],
-        access_token_secret: ENV['ACCESS_TOKEN_SECRET']
-      }
-    end
-
-    def configure_rest_client
-      puts 'Configuring REST Client!'
-
-      Twitter::REST::Client.new(config)
-    end
-
-    def tweet_result(client)
+    def tweet_result
       get_election_data = process_election_data
       mayor_hashtags = associated_hashtags("mayor")
       mayor_result_tweet_format = tweet_template(get_election_data, "Kathmandu Metropolitan", "mayor", mayor_hashtags)
       puts mayor_result_tweet_format
-      client.update(mayor_result_tweet_format)
+      TweetResultService.new.perform(mayor_result_tweet_format)
     end
 
+    private
+    
     def process_election_data
       browser.goto(url)
       sleep(1)
@@ -99,4 +78,4 @@ module AtonxTweetBot
   end
 end
 
-AtonxTweetBot::GetElectionResultService.new.perform
+AtonxTweetBot::GetElectionResultService.new.tweet_result
