@@ -9,8 +9,8 @@ Figaro.application = Figaro::Application.new(
 )
 Figaro.load
 
-module ElectionData
-  class TweetElectionResultService
+module AtonxTweetBot
+  class TweetResultService
     attr_reader :config
 
     def initialize
@@ -63,4 +63,4 @@ module ElectionData
   end
 end
 
-ElectionData::TweetElectionResultService.new.perform
+AtonxTweetBot::TweetResultService.new.perform
