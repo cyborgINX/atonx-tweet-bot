@@ -16,8 +16,9 @@ module AtonxTweetBot
       @config = twitter_api_config
     end
 
-    def perform(data)
+    def process(data)
       client = configure_rest_client
+      puts data
       client.update(data)
     end
 

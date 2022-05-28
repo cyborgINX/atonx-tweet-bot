@@ -1,21 +1,13 @@
 require 'watir'
 require 'webdrivers'
 require 'pry'
-require 'figaro'
 require_relative '../../tweet_result_service'
 
 KATHMANDU_METROPOLITAN = 'Kathmandu Metropolitan'
-
-Figaro.application = Figaro::Application.new(
-  environment: 'production',
-  path: File.expand_path('config/application.yml')
-)
-Figaro.load
-
+MAYOR = 'mayor'
 
 module AtonxTweetBot
   class GetElectionResultService
-
     attr_reader :url, :browser
 
     def initialize
@@ -23,39 +15,47 @@ module AtonxTweetBot
       @browser = Watir::Browser.new :chrome, headless: true
     end
 
-    def tweet_result
-      get_election_data = process_election_data
-      mayor_hashtags = associated_hashtags("mayor")
-      mayor_result_tweet_format = tweet_template(get_election_data, "Kathmandu Metropolitan", "mayor", mayor_hashtags)
-      puts mayor_result_tweet_format
-      TweetResultService.new.perform(mayor_result_tweet_format)
+    def perform
+      get_election_data = extract_election_data
+      return 'No data to tweet at this time. Please try again later!' if get_election_data.is_a? String
+
+      rel_hashtags = associated_hashtags(MAYOR)
+      res_tweet_format = tweet_template(get_election_data, KATHMANDU_METROPOLITAN, MAYOR, rel_hashtags)
+      TweetResultService.new.process(res_tweet_format)
     end
 
     private
-    
-    def process_election_data
+
+    def extract_election_data
       browser.goto(url)
       sleep(1)
       election_place = browser.header(class: 'election-header')&.h2(class: 'header-title')&.text
       return if election_place != KATHMANDU_METROPOLITAN
 
-      nominees_collection = browser.div(class: "nominee-list-group")&.ul(class: 'list-group')&.lis(class: 'election-list')
-      return if nominees_collection.size.zero?
+      nominees_div_collection = browser.div(class: 'nominee-list-group')&.ul(class: 'list-group')&.lis(class: 'election-list')
+      return if nominees_div_collection.size.zero?
 
-      top_3_candidates_coll = nominees_collection.to_a.first(2)
-      extracted_result_arr = extract_data(top_3_candidates_coll)
+      int_div_siz = begin
+        nominees_div_collection.size >= 3 ? 3 : nominees_div_collection.size
+      rescue StandardError
+        0
+      end
+      return 'No Data available.' if int_div_siz.zero?
+
+      top_3_candidates_div_coll = nominees_div_collection.to_a.first(int_div_siz)
+      extracted_result_arr = extract_top_data(top_3_candidates_div_coll)
       browser.close
       extracted_result_arr
     end
 
-    def extract_data(candidates_coll)
+    def extract_top_data(candidates_div_coll)
       extracted_data_arr = []
-      candidates_coll.each do |cc|
+      candidates_div_coll.each do |cc|
         candidate_list = cc.div(class: 'candidate-list')&.div(class: 'row')
         candidate_meta = candidate_list.div(class: 'candidate-meta')
         candidate_name = candidate_meta.div(class: 'candidate-name')&.text
         candidate_party_name = candidate_meta.div(class: 'candidate-party-name')&.text
-        candidate_vote_num = candidate_list.div(class: "vote-numbers")&.text
+        candidate_vote_num = candidate_list.div(class: 'vote-numbers')&.text
 
         extracted_data_arr << [candidate_name, candidate_party_name, candidate_vote_num]
       end
@@ -64,6 +64,7 @@ module AtonxTweetBot
     end
 
     def tweet_template(data, location, position, hashtags)
+      # TODO : Make this tweet template more robust.
       "#{location} - #{position.capitalize} Update - Election 2079" + "\n\n" +
         "1. \"#{data[0][1]}\" - \"#{data[0][0]}\" = \"#{data[0][2].to_i}\"" +  "\n" +
         "2. \"#{data[1][1]}\" - \"#{data[1][0]}\" = \"#{data[1][2].to_i}\"" + "\n" +
@@ -71,11 +72,9 @@ module AtonxTweetBot
     end
 
     def associated_hashtags(position)
-      if position == "mayor"
-        "#BalenShah #KathmanduMayor #LocalElections2022"
-      end
+      '#BalenShah #KathmanduMayor #LocalElections2022' if position == 'mayor'
     end
   end
 end
 
-AtonxTweetBot::GetElectionResultService.new.tweet_result
+AtonxTweetBot::GetElectionResultService.new.perform
