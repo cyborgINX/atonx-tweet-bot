@@ -16,10 +16,15 @@ module AtonxTweetBot
       @config = twitter_api_config
     end
 
-    def process(data)
-      client = configure_rest_client
+    def process(data, type)
       puts data
-      client.update(data)
+      case type
+        when 'tweet'
+          rest_client = configure_rest_client
+          rest_client.update(data)
+        else
+          # TODO :  add more cases
+      end
     end
 
     private

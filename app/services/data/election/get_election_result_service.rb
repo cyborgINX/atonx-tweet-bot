@@ -21,7 +21,7 @@ module AtonxTweetBot
 
       rel_hashtags = associated_hashtags(MAYOR)
       res_tweet_format = tweet_template(get_election_data, KATHMANDU_METROPOLITAN, MAYOR, rel_hashtags)
-      TweetResultService.new.process(res_tweet_format)
+      TweetResultService.new.process(res_tweet_format, 'tweet')
     end
 
     private
