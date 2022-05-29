@@ -19,11 +19,11 @@ module AtonxTweetBot
     def process(data, type)
       puts data
       case type
-        when 'tweet'
-          rest_client = configure_rest_client
-          rest_client.update(data)
-        else
-          # TODO :  add more cases
+      when 'tweet'
+        rest_client = configure_rest_client
+        rest_client.update(data)
+      else
+        # TODO :  add more cases
       end
     end
 
